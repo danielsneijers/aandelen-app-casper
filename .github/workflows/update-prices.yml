@@ -16,15 +16,17 @@ jobs:
     outputs:
       changed: ${{ steps.commit.outputs.changed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
 
-      # Lukt het ophalen niet (Yahoo deelt soms een 429 uit aan gedeelde
-      # IP-adressen), dan blijft de bestaande prices.json staan en stopt dit
-      # stapje zonder fout. Morgen gewoon weer.
+      # Geen npm install nodig: het script gebruikt alleen ingebouwde Node-dingen.
+      #
+      # Het probeert eerst de Financial Times en dan Yahoo. Lukt geen van beide,
+      # dan blijft de bestaande prices.json staan en stopt dit stapje zonder
+      # fout. Morgen gewoon weer.
       - run: npm run prices
 
       - name: Vastleggen

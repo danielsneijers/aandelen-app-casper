@@ -23,14 +23,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
-      - run: npm ci
+      # Bewust `npm install` en niet `npm ci`. Astro sleept via rolldown een
+      # paar wasm-fallbacks mee die een prerelease-peer nodig hebben; npm
+      # schrijft die op macOS niet in de lockfile, waardoor `npm ci` op Linux
+      # klaagt over ontbrekende @emnapi-pakketten. `npm install` lost per
+      # platform op en heeft daar geen last van.
+      - run: npm install --no-audit --no-fund
 
       # Normaal staat prices.json gewoon in de repo. Is dit de allereerste
       # deploy en heb je hem nog niet opgehaald, dan doen we dat hier alsnog.
@@ -57,8 +62,8 @@ jobs:
         env:
           BASE_PATH: ${{ steps.base.outputs.path }}
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
@@ -70,4 +75,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

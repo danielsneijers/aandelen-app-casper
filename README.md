@@ -62,18 +62,31 @@ Deze test draait ook bij elke deploy. Klopt er iets niet, dan gaat de site niet 
 
 ## Waar de koersen vandaan komen
 
-Yahoo Finance stuurt geen CORS-headers, dus de pagina mag die koersen niet zelf uit de
-browser ophalen. In plaats daarvan draait er een GitHub Action
+Geen van de bronnen stuurt CORS-headers, dus de pagina mag ze niet zelf uit de browser
+ophalen. In plaats daarvan draait er een GitHub Action
 ([`update-prices.yml`](.github/workflows/update-prices.yml)) op werkdagen om 18:10 UTC.
 Die haalt de koersen op, schrijft ze naar `src/data/prices.json`, commit dat bestand en
 zet de site opnieuw online.
 
-Voordelen: geen server, geen API-sleutel, en de koershistorie staat als gewoon bestand in
-je eigen repo.
+Er zijn **twee bronnen, allebei zonder account of API-sleutel**:
 
-Lukt het ophalen een keer niet — Yahoo geeft gedeelde IP-adressen soms een `429` — dan
-blijft de bestaande `prices.json` staan en probeert hij het de volgende dag opnieuw. De
+1. **Financial Times** (`markets.ft.com`) — levert tien jaar dagkoersen in euro's van de
+   Amsterdamse notering. Dit is de eerste keuze.
+2. **Yahoo Finance** (`VUSA.AS`) — reserve, wordt alleen gebruikt als de eerste faalt.
+
+Ze leveren dezelfde cijfers; dat is tot op drie decimalen nagerekend. Faalt de eerste,
+dan schuift het script vanzelf door naar de tweede. Falen ze allebei, dan blijft de
+bestaande `prices.json` staan en probeert de workflow het de volgende dag opnieuw. De
 site blijft dus altijd werken.
+
+> Allebei zijn het openbare endpoints die niet als officiële API bedoeld zijn — ze kunnen
+> zonder aankondiging veranderen. Daarom staat de opgehaalde data als gewoon bestand in je
+> eigen repo: ook als beide bronnen ooit stoppen, blijft de historie die je al hebt gewoon
+> staan. Yahoo deelt bovendien soms een `429` uit aan IP-adressen die te snel achter elkaar
+> vragen, wat precies de reden is dat er een tweede bron is.
+
+Voordelen: geen server, geen API-sleutel, geen account, en de koershistorie staat als
+gewoon bestand in je eigen repo.
 
 ## Eenmalig instellen op GitHub
 
@@ -98,9 +111,18 @@ juiste pad wordt automatisch bepaald, daar hoef je niets voor aan te passen.
 
 ## Een ander fonds volgen
 
-Pas `SYMBOL` aan bovenin [`scripts/fetch-prices.mjs`](scripts/fetch-prices.mjs) en draai
-`npm run prices`. Let op de beurs die je kiest — `VUSA.AS` (Amsterdam) noteert in euro's,
-`VUSA.L` (Londen) in ponden. De app rekent overal met euro's.
+Pas in [`scripts/fetch-prices.mjs`](scripts/fetch-prices.mjs) allebei de bronnen aan:
+`FT_XID` en `YAHOO_SYMBOL`. Draai daarna `npm run prices`.
+
+Het FT-nummer van een fonds vind je zo:
+
+```bash
+curl -s "https://markets.ft.com/data/searchapi/searchsecurities?query=VUSA"
+```
+
+Let op de beurs die je kiest — `VUSA:AEX:EUR` (Amsterdam) noteert in euro's, de Londense
+in ponden. Het script weigert data die niet in euro's staat, want de app rekent overal
+met euro's.
 
 ## Wat waar staat
 
