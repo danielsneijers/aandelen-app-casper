@@ -1,0 +1,19 @@
+{
+  "name": "aandelen-app",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "predev": "node scripts/ensure-prices.mjs",
+    "dev": "astro dev",
+    "prebuild": "node scripts/ensure-prices.mjs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "prices": "node scripts/fetch-prices.mjs",
+    "test": "node --test scripts/portfolio.test.mjs"
+  },
+  "dependencies": {
+    "astro": "^7.1.5",
+    "chart.js": "^4.5.0"
+  }
+}

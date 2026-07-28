@@ -1,0 +1,115 @@
+# Casper's S&P 500 tracker
+
+Een pagina die de koers van de **Vanguard S&P 500 UCITS ETF USD Dis** (`VUSA`, Euronext
+Amsterdam) volgt en laat zien wat Caspers stukje van een aandeel waard is.
+
+Geen echt geld, geen broker — alleen rekenen en kijken.
+
+## Hoe het werkt
+
+Eén heel aandeel kost ruim €120. Casper legt €12 of €25 in, dus koopt hij een *stukje*:
+
+```
+€12 ÷ €123,68 per aandeel = 0,0970 aandeel
+```
+
+Dat stukje blijft even groot. Alleen de koers beweegt, en daarmee de waarde.
+Bij meerdere inlegmomenten telt de app de stukjes bij elkaar op — elk gekocht tegen
+de koers van díé dag.
+
+## Nieuwe inleg toevoegen
+
+Zet er een regel bij in [`src/data/deposits.json`](src/data/deposits.json) en push:
+
+```json
+[
+  { "date": "2026-07-28", "eur": 12, "note": "Eerste inleg" },
+  { "date": "2026-08-15", "eur": 25, "note": "Verjaardagsgeld" }
+]
+```
+
+- `date` — de dag dat hij je het geld gaf, als `JJJJ-MM-DD`. Valt dat in het weekend,
+  dan rekent de app met de laatste beursdag ervóór.
+- `eur` — het bedrag.
+- `note` — optioneel, puur voor jezelf.
+
+Elke push naar `main` zet de site automatisch opnieuw online.
+
+Wil hij zelf iets uitproberen zonder de echte cijfers aan te raken, dan kan dat in de
+**Speeltuin** op de pagina. Die proef-inleg blijft in zijn eigen browser staan
+(`localStorage`) en komt niet in dit bestand terecht.
+
+## Lokaal draaien
+
+```bash
+npm install
+npm run dev
+```
+
+Koersen handmatig ophalen:
+
+```bash
+npm run prices
+```
+
+Het rekenwerk controleren (weekenddatums, meerdere inlegmomenten, lege portefeuille):
+
+```bash
+npm test
+```
+
+Deze test draait ook bij elke deploy. Klopt er iets niet, dan gaat de site niet online.
+
+## Waar de koersen vandaan komen
+
+Yahoo Finance stuurt geen CORS-headers, dus de pagina mag die koersen niet zelf uit de
+browser ophalen. In plaats daarvan draait er een GitHub Action
+([`update-prices.yml`](.github/workflows/update-prices.yml)) op werkdagen om 18:10 UTC.
+Die haalt de koersen op, schrijft ze naar `src/data/prices.json`, commit dat bestand en
+zet de site opnieuw online.
+
+Voordelen: geen server, geen API-sleutel, en de koershistorie staat als gewoon bestand in
+je eigen repo.
+
+Lukt het ophalen een keer niet — Yahoo geeft gedeelde IP-adressen soms een `429` — dan
+blijft de bestaande `prices.json` staan en probeert hij het de volgende dag opnieuw. De
+site blijft dus altijd werken.
+
+## Eenmalig instellen op GitHub
+
+0. Haal eerst één keer de koersen op en commit het resultaat, zodat de repo meteen
+   data heeft:
+
+   ```bash
+   npm run prices
+   ```
+
+1. Push deze map naar een GitHub-repo met `main` als hoofdbranch.
+2. **Settings → Pages → Build and deployment → Source**: zet op **GitHub Actions**.
+3. **Settings → Actions → General → Workflow permissions**: zet op
+   **Read and write permissions**. Zonder dit mag de koers-workflow niet committen.
+4. Ga naar **Actions → Koersen bijwerken → Run workflow** om het meteen te testen.
+
+De site komt op `https://<jouw-gebruikersnaam>.github.io/<repo-naam>/` te staan. Het
+juiste pad wordt automatisch bepaald, daar hoef je niets voor aan te passen.
+
+> Geplande workflows worden door GitHub gepauzeerd als er 60 dagen niets in de repo
+> gebeurt. Je krijgt daar een mail over; één klik op *Run workflow* zet hem weer aan.
+
+## Een ander fonds volgen
+
+Pas `SYMBOL` aan bovenin [`scripts/fetch-prices.mjs`](scripts/fetch-prices.mjs) en draai
+`npm run prices`. Let op de beurs die je kiest — `VUSA.AS` (Amsterdam) noteert in euro's,
+`VUSA.L` (Londen) in ponden. De app rekent overal met euro's.
+
+## Wat waar staat
+
+| Bestand | Wat het doet |
+| --- | --- |
+| `src/pages/index.astro` | De hele pagina: opmaak, grafiek, speeltuin |
+| `src/lib/portfolio.js` | Het rekenwerk (stukjes, waarde, winst) |
+| `src/lib/format.js` | Nederlandse opmaak van bedragen en datums |
+| `src/data/deposits.json` | Zijn echte inleg — dit bewerk je zelf |
+| `src/data/prices.json` | Opgehaalde koersen — hier blijf je vanaf |
+| `scripts/fetch-prices.mjs` | Haalt de koersen op |
+| `scripts/portfolio.test.mjs` | Controleert het rekenwerk |

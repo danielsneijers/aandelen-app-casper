@@ -1,0 +1,73 @@
+name: Deploy
+
+# Draait als je zelf iets pusht (bijvoorbeeld een nieuwe inleg in
+# src/data/deposits.json), handmatig via de Actions-tab, of aangeroepen
+# door de koers-workflow.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Nooit twee deploys tegelijk, maar een lopende deploy wel netjes afmaken.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Normaal staat prices.json gewoon in de repo. Is dit de allereerste
+      # deploy en heb je hem nog niet opgehaald, dan doen we dat hier alsnog.
+      - name: Zorg dat er koersen zijn
+        run: '[ -f src/data/prices.json ] || npm run prices'
+
+      # Klopt het rekenwerk niet meer, dan gaat er niets online.
+      - run: npm test
+
+      # Een "project site" staat op https://<gebruiker>.github.io/<repo>/,
+      # dus dan moet Astro alle links met /<repo> beginnen. Heet de repo
+      # <gebruiker>.github.io, dan staat de site juist in de hoofdmap.
+      - name: Bepaal het pad
+        id: base
+        run: |
+          repo="${{ github.event.repository.name }}"
+          if [[ "$repo" == *.github.io ]]; then
+            echo "path=/" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=/$repo" >> "$GITHUB_OUTPUT"
+          fi
+
+      - run: npm run build
+        env:
+          BASE_PATH: ${{ steps.base.outputs.path }}
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

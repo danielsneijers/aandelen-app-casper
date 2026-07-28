@@ -1,0 +1,452 @@
+/* Warme, rustige basis. Geen webfonts: scheelt laadtijd en externe requests. */
+
+:root {
+  --bg: #faf7f2;
+  --surface: #ffffff;
+  --border: #e8e0d5;
+  --ink: #241f1a;
+  --ink-soft: #6d6459;
+  --ink-faint: #9a9088;
+
+  --accent: #1f6f6b; /* koerslijn: rustig teal */
+  --accent-soft: rgba(31, 111, 107, 0.12);
+  --marker: #d9822b; /* inlegmomenten: warm oranje */
+
+  --up: #14785c;
+  --down: #b8412f;
+
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(36, 31, 26, 0.05), 0 8px 24px rgba(36, 31, 26, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16130f;
+    --surface: #201c17;
+    --border: #342e26;
+    --ink: #f2ece3;
+    --ink-soft: #aba094;
+    --ink-faint: #7d7469;
+
+    --accent: #4fb3ad;
+    --accent-soft: rgba(79, 179, 173, 0.16);
+    --marker: #e8a057;
+
+    --up: #43c295;
+    --down: #e07a63;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+/* Cijfers moeten niet "dansen" als ze elke dag veranderen. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ---------- kop ---------- */
+
+header {
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 6px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  line-height: 1.25;
+  margin: 0 0 4px;
+  letter-spacing: -0.015em;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+/* ---------- kaarten ---------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 22px;
+  margin-bottom: 20px;
+}
+
+.card > h2 {
+  font-size: 1rem;
+  margin: 0 0 16px;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- hoofdgetal ---------- */
+
+.headline-label {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  margin: 0 0 2px;
+}
+
+.headline {
+  font-size: clamp(2.4rem, 11vw, 3.2rem);
+  font-weight: 620;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.delta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 1.05rem;
+  font-weight: 560;
+}
+
+.up {
+  color: var(--up);
+}
+.down {
+  color: var(--down);
+}
+
+.delta .since {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* ---------- feiten-raster ---------- */
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 2px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.fact dt {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  margin-bottom: 2px;
+}
+
+.fact dd {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+}
+
+.fact .hint {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--ink-faint);
+  margin-top: 1px;
+}
+
+/* ---------- knoppenrijen ---------- */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.segmented {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.segmented button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 520;
+  padding: 5px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.segmented button:hover {
+  color: var(--ink);
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(36, 31, 26, 0.12);
+}
+
+.segmented button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ---------- grafiek ---------- */
+
+.chart-box {
+  position: relative;
+  height: 260px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 14px;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.swatch.line {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.swatch.dash {
+  width: 14px;
+  height: 0;
+  border-top: 2px dashed var(--ink-faint);
+  border-radius: 0;
+}
+
+/* ---------- speeltuin ---------- */
+
+.sandbox-intro {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  margin: -6px 0 16px;
+}
+
+.sandbox-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 120px;
+}
+
+.field label {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.field input {
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 9px 11px;
+  width: 100%;
+  min-width: 0;
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+button.primary {
+  font: inherit;
+  font-weight: 560;
+  color: var(--surface);
+  background: var(--accent);
+  border: 0;
+  border-radius: 9px;
+  padding: 10px 16px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+button.primary:hover {
+  filter: brightness(1.08);
+}
+
+button.primary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.sandbox-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sandbox-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: 9px;
+}
+
+.sandbox-list .grow {
+  flex: 1;
+}
+
+.sandbox-list .muted {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.link-button {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link-button:hover {
+  color: var(--down);
+}
+
+.sandbox-note {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 0.86rem;
+}
+
+/* ---------- uitleg ---------- */
+
+.explain p {
+  margin: 0 0 12px;
+  color: var(--ink-soft);
+  font-size: 0.94rem;
+}
+
+.explain p:last-child {
+  margin-bottom: 0;
+}
+
+.explain strong {
+  color: var(--ink);
+  font-weight: 580;
+}
+
+.sum {
+  display: inline-block;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- voet ---------- */
+
+footer {
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+  text-align: center;
+  line-height: 1.7;
+}
+
+footer a {
+  color: inherit;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 480px) {
+  .wrap {
+    padding: 24px 14px 48px;
+  }
+  .card {
+    padding: 18px;
+  }
+  .chart-box {
+    height: 220px;
+  }
+}

@@ -1,0 +1,549 @@
+---
+import prices from '../data/prices.json';
+import deposits from '../data/deposits.json';
+import { computePortfolio } from '../lib/portfolio.js';
+import { formatEuro, formatPrice, formatShares, formatSigned, formatPct } from '../lib/format.js';
+import '../styles/global.css';
+
+// Alles wordt tijdens het bouwen uitgerekend. De pagina die GitHub Pages
+// uitserveert bevat dus al de goede cijfers, ook als JavaScript uitstaat.
+const { deposits: resolved, summary } = computePortfolio(prices, deposits);
+
+const dayBefore = prices.closes.at(-2) ?? prices.closes.at(-1);
+const dayChangePct = ((prices.price - dayBefore) / dayBefore) * 100;
+
+const updated = new Date(prices.updated);
+const updatedLabel = new Intl.DateTimeFormat('nl-NL', {
+  day: 'numeric',
+  month: 'long',
+  hour: '2-digit',
+  minute: '2-digit',
+}).format(updated);
+
+// Wat de browser nodig heeft. De waarde-reeks sturen we niet mee: die rekent
+// de browser zelf opnieuw uit zodra er proef-inleg bijkomt.
+// De '<' escapen: naam en beursnaam komen van Yahoo, en een toevallige
+// '</script>' in die tekst zou anders uit het script-blok breken.
+const clientData = JSON.stringify({ prices, deposits }).replaceAll('<', '\\u003c');
+---
+
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Casper's S&amp;P 500 tracker</title>
+    <meta
+      name="description"
+      content="Volgt de koers van de Vanguard S&P 500 UCITS ETF en laat zien wat Caspers stukje aandeel waard is."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📈</text></svg>"
+    />
+  </head>
+
+  <body>
+    <div class="wrap">
+      <header>
+        <p class="eyebrow">{prices.name}</p>
+        <h1>Casper's stukje van de S&amp;P 500</h1>
+        <p class="subtitle">
+          Koers nu <strong class="tnum">{formatPrice(prices.price)}</strong> per heel aandeel{' '}
+          <span class={dayChangePct >= 0 ? 'up' : 'down'}>({formatPct(dayChangePct)})</span>
+        </p>
+      </header>
+
+      <!-- Wat het nu waard is -->
+      <section class="card" aria-labelledby="waarde-titel">
+        <p class="headline-label" id="waarde-titel">Jouw portefeuille is nu waard</p>
+        <p class="headline tnum" id="value">{formatEuro(summary.value)}</p>
+
+        <p
+          class={'delta tnum ' + (summary.profit >= 0 ? 'up' : 'down')}
+          id="delta"
+          hidden={summary.invested === 0}
+        >
+          <span id="delta-amount">{formatSigned(summary.profit)}</span>
+          <span id="delta-pct"
+            >{summary.profitPct === null ? '' : formatPct(summary.profitPct)}</span
+          >
+          <span class="since">sinds je begon</span>
+        </p>
+
+        <dl class="facts">
+          <div class="fact">
+            <dt>Ingelegd</dt>
+            <dd class="tnum" id="invested">{formatEuro(summary.invested)}</dd>
+          </div>
+          <div class="fact">
+            <dt>Jouw stukje aandeel</dt>
+            <dd class="tnum" id="shares">
+              {formatShares(summary.shares)}
+              <span class="hint" id="shares-hint">
+                ongeveer {summary.sharePct.toFixed(1).replace('.', ',')}% van één aandeel
+              </span>
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- Grafiek -->
+      <section class="card" aria-labelledby="grafiek-titel">
+        <h2 id="grafiek-titel">Hoe het loopt</h2>
+
+        <div class="controls">
+          <div class="segmented" role="group" aria-label="Wat wil je zien?">
+            <button type="button" data-view="price" aria-pressed="true">Koers</button>
+            <button type="button" data-view="value" aria-pressed="false">Mijn waarde</button>
+          </div>
+
+          <div class="segmented" role="group" aria-label="Over welke periode?">
+            <button type="button" data-range="1m" aria-pressed="false">1M</button>
+            <button type="button" data-range="6m" aria-pressed="false">6M</button>
+            <button type="button" data-range="1y" aria-pressed="true">1J</button>
+            <button type="button" data-range="5y" aria-pressed="false">5J</button>
+            <button type="button" data-range="all" aria-pressed="false">Alles</button>
+          </div>
+        </div>
+
+        <div class="chart-box">
+          <canvas id="chart" aria-label="Grafiek van de koers door de tijd"></canvas>
+        </div>
+
+        <div class="legend">
+          <span>
+            <i class="swatch line" style="background: var(--accent)"></i>
+            <span id="legend-line">Koers</span>
+          </span>
+          <span id="legend-invested" hidden><i class="swatch dash"></i> Ingelegd</span>
+          <span><i class="swatch" style="background: var(--marker)"></i> Moment van inleg</span>
+        </div>
+
+        <noscript>
+          <p class="sandbox-note">
+            De grafiek heeft JavaScript nodig. De cijfers hierboven kloppen ook zonder.
+          </p>
+        </noscript>
+      </section>
+
+      <!-- Speeltuin -->
+      <section class="card" aria-labelledby="speeltuin-titel">
+        <h2 id="speeltuin-titel">Speeltuin</h2>
+        <p class="sandbox-intro">
+          Wil je uitproberen wat er gebeurt als je meer inlegt, of als je vorig jaar was begonnen?
+          Doe dat hier. Dit verandert niets aan je echte inleg — het is alleen om te spelen.
+        </p>
+
+        <form class="sandbox-form" id="sandbox-form">
+          <div class="field">
+            <label for="play-eur">Bedrag in euro</label>
+            <input id="play-eur" name="eur" type="number" min="0.01" step="0.01" value="25" required />
+          </div>
+          <div class="field">
+            <label for="play-date">Op welke datum?</label>
+            <input id="play-date" name="date" type="date" required />
+          </div>
+          <button class="primary" type="submit">Uitproberen</button>
+        </form>
+
+        <ul class="sandbox-list" id="sandbox-list"></ul>
+
+        <p class="sandbox-note" id="sandbox-note" hidden></p>
+      </section>
+
+      <!-- Uitleg -->
+      <section class="card explain" aria-labelledby="uitleg-titel">
+        <h2 id="uitleg-titel">Hoe werkt dit eigenlijk?</h2>
+        <p>
+          Een <strong>aandeel</strong> is een klein stukje eigendom van een bedrijf. Deze ETF is een
+          mandje met de <strong>500 grootste bedrijven van Amerika</strong> tegelijk — Apple,
+          Microsoft, Coca-Cola en nog 497 andere. Koop je hier iets van, dan koop je een heel klein
+          beetje van allemaal.
+        </p>
+        <p>
+          Eén heel aandeel kost <strong class="tnum">{formatPrice(prices.price)}</strong>. Dat is
+          veel meer dan je inlegt, dus je koopt een <strong>stukje</strong> van een aandeel. Zo
+          rekenen we dat uit:
+        </p>
+        {
+          resolved.length > 0 && (
+            <p>
+              <span class="sum">
+                {formatEuro(resolved[0].eur)} ÷ {formatPrice(resolved[0].price)} ={' '}
+                {formatShares(resolved[0].shares)} aandeel
+              </span>
+            </p>
+          )
+        }
+        <p>
+          Dat stukje blijft altijd even groot. Wat wél verandert is de <strong>koers</strong>: gaat
+          die omhoog, dan is jouw stukje meer waard. Gaat die omlaag, dan minder. Je verliest je
+          stukje nooit — alleen de prijs beweegt mee.
+        </p>
+      </section>
+
+      <footer>
+        <p>
+          Koersen van {prices.symbol} ({prices.exchange}), bijgewerkt {updatedLabel}.<br />
+          Dit is een oefenportefeuille om van te leren. Er is geen echt geld belegd.
+        </p>
+      </footer>
+    </div>
+
+    <script type="application/json" id="app-data" set:html={clientData} />
+
+    <script>
+      // Alleen registreren wat we echt tekenen; 'chart.js/auto' sleept alle
+      // grafiektypes mee en dat scheelt ruim de helft aan JavaScript.
+      import {
+        Chart,
+        LineController,
+        LineElement,
+        PointElement,
+        LinearScale,
+        CategoryScale,
+        Filler,
+        Tooltip,
+      } from 'chart.js';
+      import { computePortfolio, indexOnOrBefore } from '../lib/portfolio.js';
+      import {
+        formatEuro,
+        formatPrice,
+        formatShares,
+        formatSigned,
+        formatPct,
+        formatDayMonth,
+        formatLongDate,
+        formatMonthYear,
+      } from '../lib/format.js';
+
+      Chart.register(
+        LineController,
+        LineElement,
+        PointElement,
+        LinearScale,
+        CategoryScale,
+        Filler,
+        Tooltip
+      );
+
+      const { prices, deposits: realDeposits } = JSON.parse(
+        document.getElementById('app-data').textContent
+      );
+
+      const STORAGE_KEY = 'casper-proef-inleg';
+      const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+      /* ----------------------------- speeltuin-opslag ----------------------------- */
+
+      const loadPlay = () => {
+        try {
+          const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          return Array.isArray(raw) ? raw : [];
+        } catch {
+          // Kapotte of geblokkeerde opslag mag de pagina niet slopen.
+          return [];
+        }
+      };
+
+      const savePlay = (list) => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        } catch {
+          /* privémodus: dan onthoudt hij het gewoon niet */
+        }
+      };
+
+      let play = loadPlay();
+
+      /* -------------------------------- grafiek -------------------------------- */
+
+      let view = 'price';
+      let range = '1y';
+      let chart;
+
+      const RANGE_DAYS = { '1m': 30, '6m': 182, '1y': 365, '5y': 1826, all: Infinity };
+
+      /** Eerste index die binnen de gekozen periode valt. */
+      function rangeStart(dates) {
+        const days = RANGE_DAYS[range];
+        if (!Number.isFinite(days)) return 0;
+        const cutoff = new Date(dates.at(-1) + 'T12:00:00');
+        cutoff.setDate(cutoff.getDate() - days);
+        const iso = cutoff.toISOString().slice(0, 10);
+        const i = indexOnOrBefore(dates, iso);
+        return i === -1 ? 0 : i;
+      }
+
+      function buildData(all) {
+        const dates =
+          view === 'price' ? prices.dates : all.series.dates.length ? all.series.dates : prices.dates;
+        const from = rangeStart(dates);
+        const labels = dates.slice(from);
+
+        const line =
+          view === 'price'
+            ? prices.closes.slice(from)
+            : all.series.values.length
+              ? all.series.values.slice(from)
+              : labels.map(() => 0);
+
+        // Inlegmomenten als losse punten óp de lijn: alleen op de dagen waar
+        // ook echt iets gekocht is, de rest blijft leeg.
+        const byDate = new Map();
+        for (const d of all.deposits) {
+          const y =
+            view === 'price'
+              ? prices.closes[d.index]
+              : (all.series.values[all.series.dates.indexOf(d.tradingDate)] ?? null);
+          if (y != null) byDate.set(d.tradingDate, { y, deposit: d });
+        }
+
+        const markers = labels.map((date) => byDate.get(date)?.y ?? null);
+        const markerInfo = labels.map((date) => byDate.get(date)?.deposit ?? null);
+        const markerColors = labels.map((date) =>
+          byDate.get(date)?.deposit.play ? css('--ink-faint') : css('--marker')
+        );
+
+        const invested =
+          view === 'value' && all.series.invested.length ? all.series.invested.slice(from) : null;
+
+        return { labels, line, markers, markerInfo, markerColors, invested };
+      }
+
+      function render(all) {
+        const d = buildData(all);
+        const accent = css('--accent');
+
+        const datasets = [
+          {
+            label: view === 'price' ? 'Koers' : 'Waarde',
+            data: d.line,
+            borderColor: accent,
+            backgroundColor: css('--accent-soft'),
+            borderWidth: 2,
+            fill: true,
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            tension: 0.15,
+            order: 2,
+          },
+        ];
+
+        if (d.invested) {
+          datasets.push({
+            label: 'Ingelegd',
+            data: d.invested,
+            borderColor: css('--ink-faint'),
+            borderWidth: 1.5,
+            borderDash: [4, 4],
+            fill: false,
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            stepped: true,
+            order: 3,
+          });
+        }
+
+        datasets.push({
+          label: 'Inleg',
+          data: d.markers,
+          borderColor: 'transparent',
+          backgroundColor: d.markerColors,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBorderColor: css('--surface'),
+          pointBorderWidth: 2,
+          showLine: false,
+          order: 1,
+        });
+
+        if (chart) chart.destroy();
+
+        chart = new Chart(document.getElementById('chart'), {
+          type: 'line',
+          data: { labels: d.labels, datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 300 },
+            interaction: { mode: 'index', intersect: false },
+            layout: { padding: { top: 6, right: 2, left: 2 } },
+            scales: {
+              x: {
+                grid: { display: false },
+                border: { color: css('--border') },
+                ticks: {
+                  color: css('--ink-faint'),
+                  font: { size: 11 },
+                  maxRotation: 0,
+                  autoSkip: true,
+                  maxTicksLimit: 5,
+                  // Bij korte periodes is de dag interessant, bij lange de maand.
+                  callback(i) {
+                    const iso = d.labels[i];
+                    if (!iso) return '';
+                    return range === '1m' ? formatDayMonth(iso) : formatMonthYear(iso);
+                  },
+                },
+              },
+              y: {
+                position: 'right',
+                grid: { color: css('--border') },
+                border: { display: false },
+                ticks: {
+                  color: css('--ink-faint'),
+                  font: { size: 11 },
+                  maxTicksLimit: 5,
+                  callback: (v) => '€' + Math.round(v),
+                },
+              },
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: css('--ink'),
+                titleColor: css('--bg'),
+                bodyColor: css('--bg'),
+                padding: 10,
+                cornerRadius: 8,
+                displayColors: false,
+                // Op dagen zonder inleg staat er niets in de stippen-reeks;
+                // die regel hoort dan ook niet in het kaartje.
+                filter: (item) => item.raw != null,
+                callbacks: {
+                  title: (items) => formatLongDate(d.labels[items[0].dataIndex]),
+                  label(item) {
+                    const dep = d.markerInfo[item.dataIndex];
+                    // Op een inlegdag is de interessante regel wat hij toen kocht.
+                    if (item.datasetIndex === datasets.length - 1 && dep) {
+                      return `${dep.play ? 'Proef' : 'Inleg'}: ${formatEuro(dep.eur)} → ${formatShares(dep.shares)} aandeel`;
+                    }
+                    if (item.raw == null) return null;
+                    const name = item.dataset.label;
+                    return `${name}: ${view === 'price' && name === 'Koers' ? formatPrice(item.raw) : formatEuro(item.raw)}`;
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      /* ------------------------------ cijfers boven ------------------------------ */
+
+      const $ = (id) => document.getElementById(id);
+
+      function renderSummary(all, playing) {
+        const s = all.summary;
+        $('value').textContent = formatEuro(s.value);
+        $('invested').textContent = formatEuro(s.invested);
+        $('shares').childNodes[0].nodeValue = formatShares(s.shares) + ' ';
+        $('shares-hint').textContent =
+          `ongeveer ${s.sharePct.toFixed(1).replace('.', ',')}% van één aandeel`;
+
+        const delta = $('delta');
+        delta.hidden = s.invested === 0;
+        delta.classList.toggle('up', s.profit >= 0);
+        delta.classList.toggle('down', s.profit < 0);
+        $('delta-amount').textContent = formatSigned(s.profit);
+        $('delta-pct').textContent = s.profitPct === null ? '' : formatPct(s.profitPct);
+
+        const note = $('sandbox-note');
+        note.hidden = !playing;
+        if (playing) {
+          note.textContent =
+            'De cijfers bovenaan tellen je proef-inleg nu mee. Verwijder ze om je echte portefeuille weer te zien.';
+        }
+      }
+
+      function renderPlayList() {
+        const list = $('sandbox-list');
+        list.replaceChildren();
+
+        play.forEach((p, i) => {
+          const li = document.createElement('li');
+
+          const label = document.createElement('span');
+          label.className = 'grow';
+          label.textContent = `${formatEuro(p.eur)} op ${formatLongDate(p.date)}`;
+          li.append(label);
+
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'link-button';
+          remove.textContent = 'verwijder';
+          remove.addEventListener('click', () => {
+            play.splice(i, 1);
+            savePlay(play);
+            update();
+          });
+          li.append(remove);
+
+          list.append(li);
+        });
+      }
+
+      /* -------------------------------- aansturing -------------------------------- */
+
+      function update() {
+        // Proef-inleg krijgt een vlaggetje mee, zodat de grafiek en de tooltip
+        // het onderscheid kunnen laten zien.
+        const combined = [
+          ...realDeposits.map((d) => ({ ...d, play: false })),
+          ...play.map((d) => ({ ...d, play: true })),
+        ];
+        const all = computePortfolio(prices, combined);
+
+        renderSummary(all, play.length > 0);
+        renderPlayList();
+        render(all);
+      }
+
+      // Tabjes
+      document.querySelectorAll('[data-view], [data-range]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const group = btn.dataset.view ? 'view' : 'range';
+          if (group === 'view') view = btn.dataset.view;
+          else range = btn.dataset.range;
+
+          btn.parentElement.querySelectorAll('button').forEach((b) => {
+            b.setAttribute('aria-pressed', String(b === btn));
+          });
+
+          // De legenda hoort bij wat je nu ziet.
+          $('legend-line').textContent = view === 'price' ? 'Koers' : 'Waarde van jouw stukje';
+          $('legend-invested').hidden = view === 'price';
+          update();
+        });
+      });
+
+      // De grafiek leest zijn kleuren uit de CSS-variabelen. Zet iemand het
+      // systeem van licht naar donker, dan moet hij opnieuw getekend worden.
+      window
+        .matchMedia('(prefers-color-scheme: dark)')
+        .addEventListener('change', () => update());
+
+      // Speeltuin-formulier
+      $('play-date').value = prices.dates.at(-1);
+      $('play-date').max = prices.dates.at(-1);
+      $('play-date').min = prices.dates[0];
+
+      $('sandbox-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const eur = Number($('play-eur').value);
+        const date = $('play-date').value;
+        if (!Number.isFinite(eur) || eur <= 0 || !date) return;
+
+        play.push({ eur, date });
+        play.sort((a, b) => a.date.localeCompare(b.date));
+        savePlay(play);
+        update();
+      });
+
+      update();
+    </script>
+  </body>
+</html>
