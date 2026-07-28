@@ -64,9 +64,17 @@ Deze test draait ook bij elke deploy. Klopt er iets niet, dan gaat de site niet 
 
 Geen van de bronnen stuurt CORS-headers, dus de pagina mag ze niet zelf uit de browser
 ophalen. In plaats daarvan draait er een GitHub Action
-([`update-prices.yml`](.github/workflows/update-prices.yml)) op werkdagen om 18:10 UTC.
-Die haalt de koersen op, schrijft ze naar `src/data/prices.json`, commit dat bestand en
-zet de site opnieuw online.
+([`update-prices.yml`](.github/workflows/update-prices.yml)) van dinsdag t/m zaterdag om
+04:00 UTC — 06:00 in de zomer, 05:00 in de winter. Die haalt de koersen op, schrijft ze
+naar `src/data/prices.json`, commit dat bestand en zet de site opnieuw online.
+
+Zo staat er 's ochtends altijd een verse slotkoers klaar, en verandert het getal verder
+niet meer die dag. De zaterdagrun zorgt dat het weekend de vrijdagkoers laat zien in
+plaats van die van donderdag.
+
+> GitHub draait cron altijd in UTC en houdt géén rekening met zomer- en wintertijd, dus
+> de lokale tijd verschuift twee keer per jaar een uur. En de planner is "zo snel als het
+> uitkomt": een kwartier later is normaal, dus reken er niet op tot op de minuut.
 
 Er zijn **twee bronnen, allebei zonder account of API-sleutel**:
 

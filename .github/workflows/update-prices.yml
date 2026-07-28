@@ -2,9 +2,20 @@ name: Koersen bijwerken
 
 on:
   schedule:
-    # 18:10 UTC op werkdagen: Euronext Amsterdam sluit om 17:30 CET,
-    # dus de slotkoers van die dag staat er dan in.
-    - cron: '10 18 * * 1-5'
+    # 04:00 UTC, dinsdag t/m zaterdag. Dat is 06:00 in de zomer en 05:00 in de
+    # winter: ruim voordat Casper wakker wordt, dus 's ochtends staat de
+    # slotkoers van de vórige beursdag er altijd al in.
+    #
+    # Waarom 's ochtends en niet 's avonds? VUSA sluit in Amsterdam om 17:30,
+    # maar de S&P 500 handelt in New York door tot 22:00 onze tijd. Die laatste
+    # uren zitten dus niet in de slotkoers van vandaag — die komen morgenochtend
+    # pas in de koers. Later op de avond draaien levert daarom niets extra's op,
+    # en zou te dicht op bedtijd komen.
+    #
+    # Waarom dinsdag t/m zaterdag? Elke run haalt de vorige beursdag op. De
+    # zaterdagrun pakt dus de slotkoers van vrijdag, zodat het weekend — als
+    # hij er tijd voor heeft — geen oude donderdagkoers laat zien.
+    - cron: '0 4 * * 2-6'
   workflow_dispatch:
 
 permissions:
