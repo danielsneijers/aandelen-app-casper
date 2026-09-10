@@ -13,7 +13,7 @@
     "test": "node --test scripts/portfolio.test.mjs"
   },
   "dependencies": {
-    "astro": "^7.1.5",
+    "astro": "^7.2.8",
     "chart.js": "^4.5.0"
   }
 }
